@@ -1,3 +1,7 @@
-# bullettrain-go-python
+# PRE ALPHA
 
-Early development phase. 
+Features:
+
+[] pyenv support
+[] multiple python version detection
+[] optional or constant display
