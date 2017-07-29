@@ -74,4 +74,8 @@ func (p *PythonSegment) Render(ch chan<- string) {
 			python_symbol, strings.Trim(stderr.String(), "\n"))
 		close(ch)
 	}
+
+	// Always close the channel!
+	close(ch)
+	return
 }
