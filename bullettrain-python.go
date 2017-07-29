@@ -26,9 +26,9 @@ func (p *PythonSegment) SetBg(bg color.Attribute) {
 //// Python version managers can expose multiple versions too.
 //// Version managers analyzed first, then system Pythons.
 //// Empty string is returned when no interpreter could be reached.
-func (p *PythonSegment) Render() string {
+func (p *PythonSegment) Render(ch chan<- string) {
 	const python_symbol string = "🐍"
-	c := color.New(p.fg, p.bg)
+	col := color.New(p.fg, p.bg)
 
 	// ______
 	// | ___ \
@@ -49,7 +49,9 @@ func (p *PythonSegment) Render() string {
 			versions_info = fmt.Sprintf("%s %s", versions_info, i[1])
 		}
 
-		return c.Sprintf(" %s%s ", python_symbol, versions_info)
+		ch <- col.Sprintf(" %s%s ", python_symbol, versions_info)
+		close(ch)
+		return
 	}
 
 	// ______      _   _
@@ -68,9 +70,8 @@ func (p *PythonSegment) Render() string {
 	pythonCmd.Stderr = &stderr
 	pyErr := pythonCmd.Run()
 	if pyErr == nil {
-		return c.Sprintf(" %s %s ",
+		ch <- col.Sprintf(" %s %s ",
 			python_symbol, strings.Trim(stderr.String(), "\n"))
+		close(ch)
 	}
-
-	return ""
 }
