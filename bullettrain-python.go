@@ -10,15 +10,15 @@ import (
 	"github.com/fatih/color"
 )
 
-type PythonSegment struct {
+type Segment struct {
 	Fg, Bg color.Attribute
 }
 
-func (p *PythonSegment) SetFg(fg color.Attribute) {
+func (p *Segment) SetFg(fg color.Attribute) {
 	p.Fg = fg
 }
 
-func (p *PythonSegment) SetBg(bg color.Attribute) {
+func (p *Segment) SetBg(bg color.Attribute) {
 	p.Bg = bg
 }
 
@@ -26,8 +26,10 @@ func (p *PythonSegment) SetBg(bg color.Attribute) {
 //// Python version managers can expose multiple versions too.
 //// Version managers analyzed first, then system Pythons.
 //// Empty string is returned when no interpreter could be reached.
-func (p *PythonSegment) Render(ch chan<- string) {
+func (p *Segment) Render(ch chan<- string) {
 	const python_symbol string = "🐍"
+	defer close(ch) // Always close the channel!
+
 	col := color.New(p.Fg, p.Bg)
 
 	// ______
@@ -50,7 +52,6 @@ func (p *PythonSegment) Render(ch chan<- string) {
 		}
 
 		ch <- col.Sprintf(" %s%s ", python_symbol, versions_info)
-		close(ch)
 		return
 	}
 
@@ -72,10 +73,5 @@ func (p *PythonSegment) Render(ch chan<- string) {
 	if pyErr == nil {
 		ch <- col.Sprintf(" %s %s ",
 			python_symbol, strings.Trim(stderr.String(), "\n"))
-		close(ch)
 	}
-
-	// Always close the channel!
-	close(ch)
-	return
 }
