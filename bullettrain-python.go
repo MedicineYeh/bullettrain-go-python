@@ -11,15 +11,15 @@ import (
 )
 
 type PythonSegment struct {
-	fg, bg color.Attribute
+	Fg, Bg color.Attribute
 }
 
 func (p *PythonSegment) SetFg(fg color.Attribute) {
-	p.fg = fg
+	p.Fg = fg
 }
 
 func (p *PythonSegment) SetBg(bg color.Attribute) {
-	p.bg = bg
+	p.Bg = bg
 }
 
 //// Builds the version string of the currently available Python interpreter(s).
@@ -28,7 +28,7 @@ func (p *PythonSegment) SetBg(bg color.Attribute) {
 //// Empty string is returned when no interpreter could be reached.
 func (p *PythonSegment) Render(ch chan<- string) {
 	const python_symbol string = "🐍"
-	col := color.New(p.fg, p.bg)
+	col := color.New(p.Fg, p.Bg)
 
 	// ______
 	// | ___ \
