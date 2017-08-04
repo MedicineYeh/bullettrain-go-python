@@ -1,36 +1,49 @@
-package bullettrain_go_python
+package python
 
 import (
-	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
-	"strings"
 
-	"github.com/fatih/color"
+	"github.com/mgutz/ansi"
 )
 
-type Segment struct {
-	Fg, Bg color.Attribute
+type Car struct {
+	paint string
 }
 
-func (p *Segment) SetFg(fg color.Attribute) {
-	p.Fg = fg
+func paintedSymbol() string {
+	var symbol string
+	if symbol = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON"); symbol == "" {
+		symbol = " "
+	}
+
+	var symbolPaint string
+	if symbolPaint = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON_PAINT"); symbolPaint == "" {
+		symbolPaint = "32:220"
+	}
+
+	return ansi.Color(symbol, symbolPaint)
 }
 
-func (p *Segment) SetBg(bg color.Attribute) {
-	p.Bg = bg
+func (c *Car) GetPaint() string {
+	if c.paint = os.Getenv("BULLETTRAIN_CAR_PYTHON_PAINT"); c.paint == "" {
+		c.paint = "black:220"
+	}
+
+	return c.paint
 }
 
-//// Builds the version string of the currently available Python interpreter(s).
-//// Python version managers can expose multiple versions too.
+//// Builds the version string of the currently available Car interpreter(s).
+//// Car version managers can expose multiple versions too.
 //// Version managers analyzed first, then system Pythons.
 //// Empty string is returned when no interpreter could be reached.
-func (p *Segment) Render(ch chan<- string) {
-	const python_symbol string = "🐍"
-	defer close(ch) // Always close the channel!
+func (c *Car) Render(out chan<- string) {
+	defer close(out) // Always close the channel!
+	carPaint := ansi.ColorFunc(c.GetPaint())
 
-	col := color.New(p.Fg, p.Bg)
+	// TODO define default colours and get optional from env
 
 	// ______
 	// | ___ \
@@ -41,17 +54,22 @@ func (p *Segment) Render(ch chan<- string) {
 	//        __/ |
 	//       |___/
 
-	pyenvCmd := exec.Command("pyenv", "version")
-	pyenvOut, err := pyenvCmd.Output()
-	if err == nil {
+	cmdPyenv := exec.Command("pyenv", "version")
+	cmdOut, errPyenv := cmdPyenv.Output()
+	if errPyenv == nil {
 		re := regexp.MustCompile(`(?m)^([a-zA-Z0-9_\-]+)`)
-		versions := re.FindAllStringSubmatch(string(pyenvOut), -1)
-		var versions_info string
+		versions := re.FindAllStringSubmatch(string(cmdOut), -1)
+		var versionsInfo string
 		for _, i := range versions {
-			versions_info = fmt.Sprintf("%s %s", versions_info, i[1])
+			versionsInfo = fmt.Sprintf("%s %s", versionsInfo, i[1])
 		}
 
-		ch <- col.Sprintf(" %s%s ", python_symbol, versions_info)
+		out <- fmt.Sprintf("%s%s%s%s",
+			carPaint(" "),
+			paintedSymbol(),
+			carPaint(versionsInfo),
+			carPaint(" "))
+
 		return
 	}
 
@@ -66,12 +84,14 @@ func (p *Segment) Render(ch chan<- string) {
 
 	// TODO python 2 and python 3 version info!
 
-	pythonCmd := exec.Command("python", "--version")
-	var stderr bytes.Buffer
-	pythonCmd.Stderr = &stderr
-	pyErr := pythonCmd.Run()
-	if pyErr == nil {
-		ch <- col.Sprintf(" %s %s ",
-			python_symbol, strings.Trim(stderr.String(), "\n"))
-	}
+	//cmdPython := exec.Command("python", "--version")
+	//var stderr bytes.Buffer
+	//cmdPython.Stderr = &stderr
+	//errPython := cmdPython.Run()
+	//if errPython == nil {
+	//	out <- ansi.Color(
+	//		fmt.Sprintf(" %s %s ",
+	//			symbol, strings.Trim(stderr.String(), "\n")),
+	//		c.GetPaint())
+	//}
 }
