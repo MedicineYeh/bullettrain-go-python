@@ -1,4 +1,4 @@
-package python
+package car_python
 
 import (
 	"fmt"
@@ -35,6 +35,20 @@ func (c *Car) GetPaint() string {
 	return c.paint
 }
 
+func (c *Car) CanShow() bool {
+	s := true
+
+	// TODO check for
+	// 	 *.py
+	//   .python-version
+
+	if e := os.Getenv("BULLETTRAIN_CAR_PYTHON_SHOW"); e == "false" {
+		s = false
+	}
+
+	return s
+}
+
 //// Builds the version string of the currently available Car interpreter(s).
 //// Car version managers can expose multiple versions too.
 //// Version managers analyzed first, then system Pythons.
@@ -42,8 +56,6 @@ func (c *Car) GetPaint() string {
 func (c *Car) Render(out chan<- string) {
 	defer close(out) // Always close the channel!
 	carPaint := ansi.ColorFunc(c.GetPaint())
-
-	// TODO define default colours and get optional from env
 
 	// ______
 	// | ___ \
