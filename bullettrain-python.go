@@ -1,4 +1,4 @@
-package car_python
+package carPython
 
 import (
 	"fmt"
@@ -27,6 +27,7 @@ func paintedSymbol() string {
 	return ansi.Color(symbol, symbolPaint)
 }
 
+// GetPaint returns the calculated end paint string for the car.
 func (c *Car) GetPaint() string {
 	if c.paint = os.Getenv("BULLETTRAIN_CAR_PYTHON_PAINT"); c.paint == "" {
 		c.paint = "black:220"
@@ -35,6 +36,7 @@ func (c *Car) GetPaint() string {
 	return c.paint
 }
 
+// CanShow decides if this car needs to be displayed.
 func (c *Car) CanShow() bool {
 	s := true
 
@@ -49,10 +51,12 @@ func (c *Car) CanShow() bool {
 	return s
 }
 
-//// Builds the version string of the currently available Car interpreter(s).
-//// Car version managers can expose multiple versions too.
-//// Version managers analyzed first, then system Pythons.
-//// Empty string is returned when no interpreter could be reached.
+// Render builds and passes the end product of a completely composed car onto
+// the channel.
+//
+// Car version managers can expose multiple Python versions too.
+// Python version managers analyzed first, then system Pythons are looked at.
+// Empty string is returned when no interpreter could be reached.
 func (c *Car) Render(out chan<- string) {
 	defer close(out) // Always close the channel!
 	carPaint := ansi.ColorFunc(c.GetPaint())
@@ -106,4 +110,16 @@ func (c *Car) Render(out chan<- string) {
 	//			symbol, strings.Trim(stderr.String(), "\n")),
 	//		c.GetPaint())
 	//}
+}
+
+// GetSeparatorPaint overrides the Fg/Bg colours of the right hand side
+// separator through ENV variables.
+func (c *Car) GetSeparatorPaint() string {
+	return os.Getenv("BULLETTRAIN_CAR_PYTHON_SEPARATOR_PAINT")
+}
+
+// GetSeparatorSymbol overrides the symbol of the right hand side
+// separator through ENV variables.
+func (c *Car) GetSeparatorSymbol() string {
+	return os.Getenv("BULLETTRAIN_CAR_PYTHON_SEPARATOR_SYMBOL")
 }
