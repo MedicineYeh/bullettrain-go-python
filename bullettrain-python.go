@@ -4,33 +4,43 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/mgutz/ansi"
 )
 
+const carPaint = "black:220"
+const pythonSymbolPaint = "32:220"
+const pythonSymbolIcon = ""
+
+//const virtualenvSymbolIcon = "🐍"
+//const virtualenvSymbolPaint = "32:220"
+
+// Car for Python and virtualenv
 type Car struct {
 	paint string
 }
 
 func paintedSymbol() string {
-	var symbol string
-	if symbol = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON"); symbol == "" {
-		symbol = " "
+	var pythonSymbol string
+	if pythonSymbol = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON"); pythonSymbol == "" {
+		pythonSymbol = pythonSymbolIcon
 	}
 
 	var symbolPaint string
 	if symbolPaint = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON_PAINT"); symbolPaint == "" {
-		symbolPaint = "32:220"
+		symbolPaint = pythonSymbolPaint
 	}
 
-	return ansi.Color(symbol, symbolPaint)
+	return ansi.Color(pythonSymbol, symbolPaint)
 }
 
 // GetPaint returns the calculated end paint string for the car.
 func (c *Car) GetPaint() string {
 	if c.paint = os.Getenv("BULLETTRAIN_CAR_PYTHON_PAINT"); c.paint == "" {
-		c.paint = "black:220"
+		c.paint = carPaint
 	}
 
 	return c.paint
@@ -38,17 +48,32 @@ func (c *Car) GetPaint() string {
 
 // CanShow decides if this car needs to be displayed.
 func (c *Car) CanShow() bool {
-	s := true
-
-	// TODO check for
-	// 	 *.py
-	//   .python-version
-
-	if e := os.Getenv("BULLETTRAIN_CAR_PYTHON_SHOW"); e == "false" {
-		s = false
+	if e := os.Getenv("BULLETTRAIN_CAR_PYTHON_SHOW"); e == "true" {
+		return true
 	}
 
-	return s
+	cmd := exec.Command("pwd", "-P")
+	pwd, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	d := strings.Trim(string(pwd), "\n")
+
+	// Show when .py files exist in current directory
+	pyPattern := fmt.Sprintf("%s%s*.py", d, string(os.PathSeparator))
+	pyFiles, err := filepath.Glob(pyPattern)
+	if pyFiles != nil {
+		return true
+	}
+
+	// Show when .python-version file exist in current directory
+	versionFiles, _ := filepath.Glob(fmt.Sprintf("%s%s.python-version",
+		d, string(os.PathSeparator)))
+	if versionFiles != nil {
+		return true
+	}
+
+	return false
 }
 
 // Render builds and passes the end product of a completely composed car onto
@@ -77,14 +102,12 @@ func (c *Car) Render(out chan<- string) {
 		versions := re.FindAllStringSubmatch(string(cmdOut), -1)
 		var versionsInfo string
 		for _, i := range versions {
-			versionsInfo = fmt.Sprintf("%s %s", versionsInfo, i[1])
+			versionsInfo = fmt.Sprintf("%s%s", versionsInfo, i[1])
 		}
 
-		out <- fmt.Sprintf("%s%s%s%s",
-			carPaint(" "),
+		out <- fmt.Sprintf("%s%s",
 			paintedSymbol(),
-			carPaint(versionsInfo),
-			carPaint(" "))
+			carPaint(versionsInfo))
 
 		return
 	}
