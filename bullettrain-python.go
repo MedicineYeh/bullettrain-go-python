@@ -100,14 +100,8 @@ func (c *Car) Render(out chan<- string) {
 	if errPyenv == nil {
 		re := regexp.MustCompile(`(?m)^([a-zA-Z0-9_\-]+)`)
 		versions := re.FindAllStringSubmatch(string(cmdOut), -1)
-		var versionsInfo string
-		for _, i := range versions {
-			versionsInfo = fmt.Sprintf("%s%s", versionsInfo, i[1])
-		}
-
-		out <- fmt.Sprintf("%s%s",
-			paintedSymbol(),
-			carPaint(versionsInfo))
+		versionsInfo := strings.Join(versions[1], " ")
+		out <- fmt.Sprintf("%s%s", paintedSymbol(), carPaint(versionsInfo))
 
 		return
 	}
