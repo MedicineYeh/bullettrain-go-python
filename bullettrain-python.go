@@ -1,6 +1,7 @@
 package carPython
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,16 +15,15 @@ import (
 const carPaint = "black:220"
 const pythonSymbolPaint = "32:220"
 const pythonSymbolIcon = ""
-
-//const virtualenvSymbolIcon = "🐍"
-//const virtualenvSymbolPaint = "32:220"
+const virtualenvSymbolIcon = "🐍"
+const virtualenvSymbolPaint = "32:220"
 
 // Car for Python and virtualenv
 type Car struct {
 	paint string
 }
 
-func paintedSymbol() string {
+func paintedPythonSymbol() string {
 	var pythonSymbol string
 	if pythonSymbol = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON"); pythonSymbol == "" {
 		pythonSymbol = pythonSymbolIcon
@@ -35,6 +35,20 @@ func paintedSymbol() string {
 	}
 
 	return ansi.Color(pythonSymbol, symbolPaint)
+}
+
+func paintedVirtualenvSymbol() string {
+	var virtualenvSymbol string
+	if virtualenvSymbol = os.Getenv("BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SYMBOL_ICON"); virtualenvSymbol == "" {
+		virtualenvSymbol = virtualenvSymbolIcon
+	}
+
+	var symbolPaint string
+	if symbolPaint = os.Getenv("BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SYMBOL_PAINT"); symbolPaint == "" {
+		symbolPaint = virtualenvSymbolPaint
+	}
+
+	return ansi.Color(virtualenvSymbol, symbolPaint)
 }
 
 // GetPaint returns the calculated end paint string for the car.
@@ -76,6 +90,59 @@ func (c *Car) CanShow() bool {
 	return false
 }
 
+// getPythonVersion gets the available version number for a python executable
+//
+// Use it to check if python2 responds, python3 responds or only python does.
+func getPythonVersion(pythonExecutable string) string {
+	cmdPython := exec.Command(pythonExecutable, "--version")
+	resultPython, errPython := cmdPython.CombinedOutput()
+	if errPython == nil {
+		return strings.TrimSpace(strings.TrimLeft(
+			string(resultPython), "Python "))
+	} else {
+		return ""
+	}
+}
+
+func collectPythonVersions(o *bytes.Buffer, carPaint func(string) string) {
+	pythonVersions := make([]string, 0)
+	var p string
+	if p = getPythonVersion("python2"); p != "" {
+		pythonVersions = append(pythonVersions, p)
+	}
+	if p = getPythonVersion("python3"); p != "" {
+		pythonVersions = append(pythonVersions, p)
+	}
+	if len(pythonVersions) == 0 {
+		if p = getPythonVersion("python"); p != "" {
+			pythonVersions = append(pythonVersions, p)
+		}
+	}
+
+	if len(pythonVersions) > 0 {
+		o.WriteString(paintedPythonSymbol())
+		o.WriteString(carPaint(
+			strings.TrimSpace(strings.Join(pythonVersions, " "))))
+	}
+}
+
+func collectPythonVirtualenvs(o *bytes.Buffer, carPaint func(string) string) {
+	cmdPyenv := exec.Command("pyenv", "version")
+	cmdOut, errPyenv := cmdPyenv.Output()
+	if errPyenv == nil {
+		re := regexp.MustCompile(`(?m)^([a-zA-Z0-9_\-]+)`)
+		versions := re.FindAllStringSubmatch(string(cmdOut), -1)
+		var versionsInfo string
+		for _, i := range versions {
+			versionsInfo = fmt.Sprintf("%s %s", versionsInfo, i[1])
+		}
+
+		o.WriteString(carPaint(" "))
+		o.WriteString(paintedVirtualenvSymbol())
+		o.WriteString(carPaint(versionsInfo))
+	}
+}
+
 // Render builds and passes the end product of a completely composed car onto
 // the channel.
 //
@@ -85,48 +152,19 @@ func (c *Car) CanShow() bool {
 func (c *Car) Render(out chan<- string) {
 	defer close(out) // Always close the channel!
 	carPaint := ansi.ColorFunc(c.GetPaint())
+	// Output collector buffer.
+	var o bytes.Buffer
 
-	// ______
-	// | ___ \
-	// | |_/ /   _  ___ _ ____   __
-	// |  __/ | | |/ _ \ '_ \ \ / /
-	// | |  | |_| |  __/ | | \ V /
-	// \_|   \__, |\___|_| |_|\_/
-	//        __/ |
-	//       |___/
-
-	cmdPyenv := exec.Command("pyenv", "version")
-	cmdOut, errPyenv := cmdPyenv.Output()
-	if errPyenv == nil {
-		re := regexp.MustCompile(`(?m)^([a-zA-Z0-9_\-]+)`)
-		versions := re.FindAllStringSubmatch(string(cmdOut), -1)
-		versionsInfo := strings.Join(versions[1], " ")
-		out <- fmt.Sprintf("%s%s", paintedSymbol(), carPaint(versionsInfo))
-
-		return
+	if pvers := os.Getenv("BULLETTRAIN_CAR_PYTHON_VERSION_SHOW"); pvers != "false" {
+		collectPythonVersions(&o, carPaint)
 	}
 
-	// ______      _   _
-	// | ___ \    | | | |
-	// | |_/ /   _| |_| |__   ___  _ __
-	// |  __/ | | | __| '_ \ / _ \| '_ \
-	// | |  | |_| | |_| | | | (_) | | | |
-	// \_|   \__, |\__|_| |_|\___/|_| |_|
-	//        __/ |
-	//       |___/
+	if pvenvs := os.Getenv("BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SHOW"); pvenvs != "false" {
+		collectPythonVirtualenvs(&o, carPaint)
+	}
 
-	// TODO python 2 and python 3 version info!
-
-	//cmdPython := exec.Command("python", "--version")
-	//var stderr bytes.Buffer
-	//cmdPython.Stderr = &stderr
-	//errPython := cmdPython.Run()
-	//if errPython == nil {
-	//	out <- ansi.Color(
-	//		fmt.Sprintf(" %s %s ",
-	//			symbol, strings.Trim(stderr.String(), "\n")),
-	//		c.GetPaint())
-	//}
+	out <- o.String()
+	return
 }
 
 // GetSeparatorPaint overrides the Fg/Bg colours of the right hand side
