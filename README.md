@@ -19,3 +19,7 @@
 | BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SHOW         | Whether to display virtualenv information.            | true          |
 | BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SYMBOL_ICON  | Icon displayed on the car.                            | `🐍`          |
 | BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SYMBOL_PAINT | Colour override for the car's symbol.                 | 32:220        |
+
+# Contribute
+
+This edition is just a barely working one and has some performance issues (mainly caused by external tools). Even reporting your use case will greatly help us to figure out/improve this product, so feel free to reach out in the Issues section.
