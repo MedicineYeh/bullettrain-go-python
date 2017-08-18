@@ -75,7 +75,7 @@ func (c *Car) CanShow() bool {
 
 	// Show when .py files exist in current directory
 	pyPattern := fmt.Sprintf("%s%s*.py", d, string(os.PathSeparator))
-	pyFiles, err := filepath.Glob(pyPattern)
+	pyFiles, _ := filepath.Glob(pyPattern)
 	if pyFiles != nil {
 		return true
 	}
