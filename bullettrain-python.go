@@ -164,7 +164,6 @@ func (c *Car) Render(out chan<- string) {
 	}
 
 	out <- o.String()
-	return
 }
 
 // GetSeparatorPaint overrides the Fg/Bg colours of the right hand side
