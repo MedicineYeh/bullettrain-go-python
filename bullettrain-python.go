@@ -21,6 +21,8 @@ const virtualenvSymbolPaint = "32:220"
 // Car for Python and virtualenv
 type Car struct {
 	paint string
+	// Current directory
+	Pwd string
 }
 
 func paintedPythonSymbol() string {
@@ -66,12 +68,10 @@ func (c *Car) CanShow() bool {
 		return true
 	}
 
-	cmd := exec.Command("pwd", "-P")
-	pwd, err := cmd.Output()
-	if err != nil {
+	var d string
+	if d = c.Pwd; d == "" {
 		return false
 	}
-	d := strings.Trim(string(pwd), "\n")
 
 	// Show when .py files exist in current directory
 	pyPattern := fmt.Sprintf("%s%s*.py", d, string(os.PathSeparator))
