@@ -12,11 +12,13 @@ import (
 	"github.com/mgutz/ansi"
 )
 
-const carPaint = "black:220"
-const pythonSymbolPaint = "32:220"
-const pythonSymbolIcon = ""
-const virtualenvSymbolIcon = "🐍"
-const virtualenvSymbolPaint = "32:220"
+const (
+	carPaint              = "black:220"
+	pythonSymbolPaint     = "32:220"
+	pythonSymbolIcon      = ""
+	virtualenvSymbolIcon  = "🐍"
+	virtualenvSymbolPaint = "32:220"
+)
 
 // Car for Python and virtualenv
 type Car struct {
