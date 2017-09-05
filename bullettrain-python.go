@@ -15,7 +15,7 @@ import (
 const (
 	carPaint              = "black:220"
 	pythonSymbolPaint     = "32:220"
-	pythonSymbolIcon      = ""
+	pythonSymbolIcon      = " "
 	virtualenvSymbolIcon  = "🐍"
 	virtualenvSymbolPaint = "32:220"
 )
