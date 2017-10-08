@@ -3,11 +3,13 @@ package carPython
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/bullettrain-sh/bullettrain-go-core/pkg/ansi"
 )
@@ -15,9 +17,10 @@ import (
 const (
 	carPaint              = "black:220"
 	pythonSymbolPaint     = "32:220"
-	pythonSymbolIcon      = " "
+	pythonSymbolIcon      = ""
 	virtualenvSymbolIcon  = "🐍"
 	virtualenvSymbolPaint = "32:220"
+	carTemplate           = `{{.VersionIcon | printf "%s " | cs}}{{.Version | printf "%s " | c}}{{.VenvIcon | printf "%s " | cvs}}{{.Venv | c}}`
 )
 
 // Car for Python and virtualenv
@@ -25,34 +28,6 @@ type Car struct {
 	paint string
 	// Current directory
 	Pwd string
-}
-
-func paintedPythonSymbol() string {
-	var pythonSymbol string
-	if pythonSymbol = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON"); pythonSymbol == "" {
-		pythonSymbol = pythonSymbolIcon
-	}
-
-	var symbolPaint string
-	if symbolPaint = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON_PAINT"); symbolPaint == "" {
-		symbolPaint = pythonSymbolPaint
-	}
-
-	return ansi.Color(pythonSymbol, symbolPaint)
-}
-
-func paintedVirtualenvSymbol() string {
-	var virtualenvSymbol string
-	if virtualenvSymbol = os.Getenv("BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SYMBOL_ICON"); virtualenvSymbol == "" {
-		virtualenvSymbol = virtualenvSymbolIcon
-	}
-
-	var symbolPaint string
-	if symbolPaint = os.Getenv("BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SYMBOL_PAINT"); symbolPaint == "" {
-		symbolPaint = virtualenvSymbolPaint
-	}
-
-	return ansi.Color(virtualenvSymbol, symbolPaint)
 }
 
 // GetPaint returns the calculated end paint string for the car.
@@ -106,8 +81,9 @@ func getPythonVersion(pythonExecutable string) string {
 	}
 }
 
-func collectPythonVersions(o *bytes.Buffer, carPaint func(string) string) {
+func collectPythonVersions() []string {
 	pythonVersions := make([]string, 0)
+
 	var p string
 	if p = getPythonVersion("python2"); p != "" {
 		pythonVersions = append(pythonVersions, p)
@@ -121,28 +97,23 @@ func collectPythonVersions(o *bytes.Buffer, carPaint func(string) string) {
 		}
 	}
 
-	if len(pythonVersions) > 0 {
-		o.WriteString(paintedPythonSymbol())
-		o.WriteString(carPaint(
-			strings.TrimSpace(strings.Join(pythonVersions, " "))))
-	}
+	return pythonVersions
 }
 
-func collectPythonVirtualenvs(o *bytes.Buffer, carPaint func(string) string) {
+func collectPythonVirtualenvs() []string {
+	versionsInfo := make([]string, 0)
+
 	cmdPyenv := exec.Command("pyenv", "version")
-	cmdOut, errPyenv := cmdPyenv.Output()
+	cmdOut, errPyenv := cmdPyenv.CombinedOutput()
 	if errPyenv == nil {
 		re := regexp.MustCompile(`(?m)^([a-zA-Z0-9_\-]+)`)
 		versions := re.FindAllStringSubmatch(string(cmdOut), -1)
-		var versionsInfo string
 		for _, i := range versions {
-			versionsInfo = fmt.Sprintf("%s %s", versionsInfo, i[1])
+			versionsInfo = append(versionsInfo, i[1])
 		}
-
-		o.WriteString(carPaint(" "))
-		o.WriteString(paintedVirtualenvSymbol())
-		o.WriteString(carPaint(versionsInfo))
 	}
+
+	return versionsInfo
 }
 
 // Render builds and passes the end product of a completely composed car onto
@@ -153,19 +124,58 @@ func collectPythonVirtualenvs(o *bytes.Buffer, carPaint func(string) string) {
 // Empty string is returned when no interpreter could be reached.
 func (c *Car) Render(out chan<- string) {
 	defer close(out) // Always close the channel!
-	carPaint := ansi.ColorFunc(c.GetPaint())
-	// Output collector buffer.
-	var o bytes.Buffer
 
-	if pvers := os.Getenv("BULLETTRAIN_CAR_PYTHON_VERSION_SHOW"); pvers != "false" {
-		collectPythonVersions(&o, carPaint)
+	var ps string
+	if ps = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON"); ps == "" {
+		ps = pythonSymbolIcon
 	}
 
-	if pvenvs := os.Getenv("BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SHOW"); pvenvs != "false" {
-		collectPythonVirtualenvs(&o, carPaint)
+	var ssp string
+	if ssp = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON_PAINT"); ssp == "" {
+		ssp = pythonSymbolPaint
 	}
 
-	out <- o.String()
+	var vs string
+	if vs = os.Getenv("BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SYMBOL_ICON"); vs == "" {
+		vs = virtualenvSymbolIcon
+	}
+
+	var vsp string
+	if vsp = os.Getenv("BULLETTRAIN_CAR_PYTHON_VIRTUALENV_SYMBOL_PAINT"); vsp == "" {
+		vsp = virtualenvSymbolPaint
+	}
+
+	var s string
+	if s = os.Getenv("BULLETTRAIN_CAR_PYTHON_TEMPLATE"); s == "" {
+		s = carTemplate
+	}
+
+	funcMap := template.FuncMap{
+		// Pipeline functions for colouring.
+		"c":   func(t string) string { return ansi.Color(t, c.GetPaint()) },
+		"cs":  func(t string) string { return ansi.Color(t, pythonSymbolPaint) },
+		"cvs": func(t string) string { return ansi.Color(t, virtualenvSymbolPaint) },
+	}
+
+	tpl := template.Must(template.New("python").Funcs(funcMap).Parse(s))
+	data := struct {
+		VersionIcon string
+		Version     string
+		VenvIcon    string
+		Venv        string
+	}{
+		VersionIcon: pythonSymbolIcon,
+		Version:     strings.Join(collectPythonVersions(), " "),
+		VenvIcon:    virtualenvSymbolIcon,
+		Venv:        strings.Join(collectPythonVirtualenvs(), " "),
+	}
+	fromTpl := new(bytes.Buffer)
+	err := tpl.Execute(fromTpl, data)
+	if err != nil {
+		log.Fatalf("Can't generate the python template: %s", err.Error())
+	}
+
+	out <- fromTpl.String()
 }
 
 // GetSeparatorPaint overrides the Fg/Bg colours of the right hand side
