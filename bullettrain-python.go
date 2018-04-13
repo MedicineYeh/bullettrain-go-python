@@ -126,12 +126,12 @@ func (c *Car) Render(out chan<- string) {
 	defer close(out) // Always close the channel!
 
 	var ps string
-	if ps = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON"); ps == "" {
+	if ps = os.Getenv("BULLETTRAIN_CAR_PYTHON_SYMBOL_ICON"); ps == "" {
 		ps = pythonSymbolIcon
 	}
 
 	var ssp string
-	if ssp = os.Getenv("BULLETTRAIN_CAR_PYTHON_ICON_PAINT"); ssp == "" {
+	if ssp = os.Getenv("BULLETTRAIN_CAR_PYTHON_SYMBOL_PAINT"); ssp == "" {
 		ssp = pythonSymbolPaint
 	}
 
@@ -153,8 +153,8 @@ func (c *Car) Render(out chan<- string) {
 	funcMap := template.FuncMap{
 		// Pipeline functions for colouring.
 		"c":   func(t string) string { return ansi.Color(t, c.GetPaint()) },
-		"cs":  func(t string) string { return ansi.Color(t, pythonSymbolPaint) },
-		"cvs": func(t string) string { return ansi.Color(t, virtualenvSymbolPaint) },
+		"cs":  func(t string) string { return ansi.Color(t, ssp) },
+		"cvs": func(t string) string { return ansi.Color(t, vsp) },
 	}
 
 	tpl := template.Must(template.New("python").Funcs(funcMap).Parse(s))
