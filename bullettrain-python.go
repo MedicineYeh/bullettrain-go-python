@@ -20,6 +20,7 @@ const (
 	pythonSymbolIcon      = ""
 	virtualenvSymbolIcon  = "🐍"
 	virtualenvSymbolPaint = "32:220"
+	// language=GoTemplate
 	carTemplate           = `{{.VersionIcon | printf "%s " | cs}}{{.Version | printf "%s " | c}}{{.VenvIcon | printf "%s " | cvs}}{{.Venv | c}}`
 )
 
@@ -106,6 +107,7 @@ func collectPythonVirtualenvs() []string {
 	cmdPyenv := exec.Command("pyenv", "version")
 	cmdOut, errPyenv := cmdPyenv.CombinedOutput()
 	if errPyenv == nil {
+		// language=GoRegExp
 		re := regexp.MustCompile(`(?m)^([a-zA-Z0-9_\-]+)`)
 		versions := re.FindAllStringSubmatch(string(cmdOut), -1)
 		for _, i := range versions {
