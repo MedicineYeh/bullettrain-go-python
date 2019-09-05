@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+	"path"
 
 	"github.com/bullettrain-sh/bullettrain-go-core/src/ansi"
 )
@@ -21,7 +22,7 @@ const (
 	virtualenvSymbolIcon  = "🐍"
 	virtualenvSymbolPaint = "32:220"
 	// language=GoTemplate
-	carTemplate           = `{{.VersionIcon | printf "%s " | cs}}{{.Version | printf "%s " | c}}{{.VenvIcon | printf "%s " | cvs}}{{.Venv | c}}`
+	carTemplate           = `{{.VenvIcon | printf "%s " | cvs}}{{.Venv | c}}`
 )
 
 // Car for Python and virtualenv
@@ -166,10 +167,10 @@ func (c *Car) Render(out chan<- string) {
 		VenvIcon    string
 		Venv        string
 	}{
-		VersionIcon: pythonSymbolIcon,
-		Version:     strings.Join(collectPythonVersions(), " "),
+		VersionIcon: "",
+		Version:     "",
 		VenvIcon:    virtualenvSymbolIcon,
-		Venv:        strings.Join(collectPythonVirtualenvs(), " "),
+		Venv:        path.Base(os.Getenv("VIRTUAL_ENV")),
 	}
 	fromTpl := new(bytes.Buffer)
 	err := tpl.Execute(fromTpl, data)
