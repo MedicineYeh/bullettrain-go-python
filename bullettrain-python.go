@@ -44,7 +44,9 @@ func (c *Car) GetPaint() string {
 // CanShow decides if this car needs to be displayed.
 func (c *Car) CanShow() bool {
 	if e := os.Getenv("BULLETTRAIN_CAR_PYTHON_SHOW"); e == "true" {
-		return true
+		if e := os.Getenv("VIRTUAL_ENV"); e != "" {
+			return true
+		}
 	}
 
 	var d string
